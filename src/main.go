@@ -3,12 +3,9 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"fmt"
-	"net/http"
 
-	gohandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"routes"
+	"goauth/v2/src/routes"
 )
 
 func main() {

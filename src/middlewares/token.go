@@ -3,7 +3,7 @@ package middlewares
 import (
 	"net/http"
 
-	"jwt"
+	"goauth/v2/src/jwt"
 )
 
 

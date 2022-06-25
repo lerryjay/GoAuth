@@ -15,5 +15,5 @@ WORKDIR "$APP_HOME"
 # RUN go mod download
 # COPY ./ ./
 # RUN go build -o /product-go-micro
-EXPOSE 9090
+EXPOSE 8020
 CMD ["bee", "run"]

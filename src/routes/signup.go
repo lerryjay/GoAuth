@@ -1,13 +1,9 @@
 package routes
 
 import (
-	"errors"
-	"fmt"
 	"net/http"
-	"time"
 
-	"database"
-	"jwt"
+	"goauth/v2/src/database"
 )
 
 
@@ -36,8 +32,7 @@ func SignupHandler(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// validate and then add the user
-	check := data.AddUserObject(r.Header["Email"][0], r.Header["Username"][0], r.Header["Passwordhash"][0],
-		r.Header["Fullname"][0], 0)
+	check := database.AddUserObject(r.Header["Email"][0], r.Header["Username"][0],r.Header["Password"][0],	r.Header["Fullname"][0], 0)
 	// if false means username already exists
 	if !check {
 		rw.WriteHeader(http.StatusConflict)

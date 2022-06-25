@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"./database"
-	"./jwt"
+	"goauth/v2/src/database"
+	"goauth/v2/src/jwt"
 )
 
 // we need this function to be private
@@ -48,6 +48,8 @@ func validateUser(email string, passwordHash string) (bool, error) {
 	}
 	return true, nil
 }
+
+
 
 func SigninHandler(rw http.ResponseWriter, r *http.Request) {
 	// validate the request first.
