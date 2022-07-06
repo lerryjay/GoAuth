@@ -1,79 +1,32 @@
 package database
 
 import (
-	"golang.org/x/crypto/bcrypt"
+	"fmt"
+	"goauth/v2/src/models"
+	"log"
+	"os"
+
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
-type user struct {
-	email string
-	username string
-	passwordhash string
-	fullname string
-	createDate string
-	role int
- }
+func Init() *gorm.DB {
 
-var userList = []user{
-	{
-		email:        "abc@gmail.com",
-		username:     "abc12",
-		passwordhash: "hashedme1",
-		fullname:     "abc def",
-		createDate:   "1631600786",
-		role:         1,
-	},
-	{
-		email:        "chekme@example.com",
-		username:     "checkme34",
-		passwordhash: "hashedme2",
-		fullname:     "check me",
-		createDate:   "1631600837",
-		role:         0,
-	},
-}
+	host := os.Getenv("DB_HOST")
+	port := os.Getenv("DB_PORT")
+	username := os.Getenv("DB_USERNAME")
+	password := os.Getenv("DB_PASSWORD")
+	dbName := os.Getenv("DB_NAME")
 
-func GetUserObject(email string) (user, bool) {
-	//needs to be replaces using Database
-	for _, user := range userList {
-		if user.email == email {
-			return user, true
-		}
-	}
-	return user{}, false
-}
+	dbURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s", username, password, host, port, dbName)
 
-// checks if the password hash is valid
-func (u *user) ValidatePasswordHash(password string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(u.passwordhash), []byte(password))
-	return err == nil
-}
+	db, err := gorm.Open(postgres.Open(dbURL), &gorm.Config{})
 
-// this simply adds the user to the list
-func AddUserObject(email string, username string, password string, fullname string, role int) bool {
-	// declare the new user object
-	hashpassword, err := HashPassword(password)
 	if err != nil {
-		return false
+		log.Fatalln(err)
 	}
 
-	newUser := user{
-		email:        email,
-		passwordhash: hashpassword,
-		username:     username,
-		fullname:     fullname,
-		role:         role,
-	}
-	// check if a user already exists
-	for _, ele := range userList {
-		if ele.email == email || ele.username == username {
-			return false
-		}
-	}
-	userList = append(userList, newUser)
-	return true
-}
+	db.AutoMigrate(&models.User{})
 
-func HashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
-	return string(bytes), err
+	return db
 }

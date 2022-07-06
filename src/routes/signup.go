@@ -1,44 +1,98 @@
 package routes
 
 import (
+	"encoding/json"
+	"fmt"
+	"goauth/v2/src/helpers"
+	"goauth/v2/src/models"
+	"io/ioutil"
+	"log"
 	"net/http"
-
-	"goauth/v2/src/database"
 )
 
+type ValidationError struct {
+	Field string
+	Error string
+}
+
+func validateUserRegister(user models.User) (bool, []ValidationError) {
+	var errors []ValidationError = []ValidationError{}
+	var error bool
+	if user.Firstname == "" {
+		error = true
+		errors = append(errors, ValidationError{Field: "Firstname", Error: "Firstname cannot be empty"})
+	}
+
+	if user.Lastname == "" {
+		error = true
+		errors = append(errors, ValidationError{Field: "Lastname", Error: "Lastname cannot be empty"})
+	}
+
+	if user.Email == "" {
+		error = true
+		errors = append(errors, ValidationError{Field: "Email", Error: "Email cannot be empty"})
+	}
+
+	if user.Telephone == "" {
+		error = true
+		errors = append(errors, ValidationError{Field: "Telephone", Error: "Telephone cannot be empty"})
+	}
+
+	if user.Password == "" {
+		error = true
+		errors = append(errors, ValidationError{Field: "Password", Error: "Password cannot be empty"})
+	}
+	return error, errors
+}
 
 // adds the user to the database of users
-func SignupHandler(rw http.ResponseWriter, r *http.Request) {
-	// extra error handling should be done at server side to prevent malicious attacks
-	if _, ok := r.Header["Email"]; !ok {
-		rw.WriteHeader(http.StatusBadRequest)
-		rw.Write([]byte("Email Missing"))
-		return
+func (h *Handler) SignupHandler(w http.ResponseWriter, r *http.Request) {
+
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
+
+	if err != nil {
+		log.Fatalln(err)
 	}
-	if _, ok := r.Header["Username"]; !ok {
-		rw.WriteHeader(http.StatusBadRequest)
-		rw.Write([]byte("Username Missing"))
-		return
-	}
-	if _, ok := r.Header["Passwordhash"]; !ok {
-		rw.WriteHeader(http.StatusBadRequest)
-		rw.Write([]byte("Passwordhash Missing"))
-		return
-	}
-	if _, ok := r.Header["Fullname"]; !ok {
-		rw.WriteHeader(http.StatusBadRequest)
-		rw.Write([]byte("Fullname Missing"))
+
+	var user models.User
+	json.Unmarshal(body, &user)
+
+	invalid, errors := validateUserRegister(user)
+
+	if invalid {
+		fmt.Println(errors)
+		validationError := models.ResponseError{Errors: errors, Description: "One or more validation error has occured"}
+		response := models.ResponseObject{Message: validationError.Description, Error: validationError}
+		helpers.Response(w).Write(response, http.StatusBadRequest)
 		return
 	}
 
-	// validate and then add the user
-	check := database.AddUserObject(r.Header["Email"][0], r.Header["Username"][0],r.Header["Password"][0],	r.Header["Fullname"][0], 0)
-	// if false means username already exists
-	if !check {
-		rw.WriteHeader(http.StatusConflict)
-		rw.Write([]byte("Email or Username already exists"))
+	password, err := helpers.HashPassword(user.Password)
+	if err != nil {
+		fmt.Println(err)
+		appError := models.ResponseError{Errors: err, Description: "One or more validation error has occured"}
+		response := models.ResponseObject{Message: appError.Description, Error: appError}
+		helpers.Response(w).Write(response, http.StatusInternalServerError)
 		return
 	}
-	rw.WriteHeader(http.StatusOK)
-	rw.Write([]byte("User Created"))
+
+	user.Password = password
+	// Append to the Books table
+	if result := h.DB.Create(&user); result.Error != nil {
+		fmt.Println(result.Error)
+	}
+
+	tokenString, err := getSignedToken(user)
+	if err != nil {
+		fmt.Println(err)
+		response := models.ResponseObject{Message: "Internal Server Error", Data: err}
+		helpers.Response(w).Write(response, http.StatusInternalServerError)
+		return
+	}
+
+	// Send a 201 created response
+	response := models.ResponseObject{Message: "Registration Successful", Data: tokenString, Error: nil}
+	helpers.Response(w).Write(response, http.StatusCreated)
+	return
 }

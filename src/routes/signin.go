@@ -1,32 +1,42 @@
-
 package routes
 
 import (
-	"errors"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
 	"time"
 
-	"goauth/v2/src/database"
+	"encoding/json"
+	"io/ioutil"
+
+	"goauth/v2/src/helpers"
 	"goauth/v2/src/jwt"
+	"goauth/v2/src/models"
 )
 
 // we need this function to be private
-func getSignedToken() (string, error) {
+func getSignedToken(user models.User) (string, error) {
+
+	userJSON, err := json.Marshal(user)
+	if err != nil {
+		panic(err)
+	}
 	// we make a JWT Token here with signing method of ES256 and claims.
 	// claims are attributes.
 	// aud - audience
 	// iss - issuer
 	// exp - expiration of the Token
 	claimsMap := map[string]string{
-		"aud": "frontend.knowsearch.ml",
-		"iss": "knowsearch.ml",
-		"exp": fmt.Sprint(time.Now().Add(time.Minute * 1).Unix()),
+		"aud":  "frontend.knowsearch.ml",
+		"iss":  "knowsearch.ml",
+		"exp":  fmt.Sprint(time.Now().Add(time.Minute * 1).Unix()),
+		"user": string(userJSON),
 	}
 	// here we provide the shared secret. It should be very complex.
 	// Also, it should be passed as a System Environment variable
 
-	secret := "Secure_Random_String"
+	secret := os.Getenv("AUTH_TOKEN_SECRET")
 	header := "HS256"
 	tokenString, err := jwt.GenerateToken(header, claimsMap, secret)
 	if err != nil {
@@ -35,57 +45,46 @@ func getSignedToken() (string, error) {
 	return tokenString, nil
 }
 
-// searches the user in the databasebase.
-func validateUser(email string, passwordHash string) (bool, error) {
-	usr, exists := database.GetUserObject(email)
-	if !exists {
-		return false, errors.New("user does not exist")
-	}
-	passwordCheck := usr.ValidatePasswordHash(passwordHash)
+func (h *Handler) SigninHandler(w http.ResponseWriter, r *http.Request) {
 
-	if !passwordCheck {
-		return false, nil
-	}
-	return true, nil
-}
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
 
-
-
-func SigninHandler(rw http.ResponseWriter, r *http.Request) {
-	// validate the request first.
-	if _, ok := r.Header["Email"]; !ok {
-		rw.WriteHeader(http.StatusBadRequest)
-		rw.Write([]byte("Email Missing"))
-		return
-	}
-	if _, ok := r.Header["Passwordhash"]; !ok {
-		rw.WriteHeader(http.StatusBadRequest)
-		rw.Write([]byte("Passwordhash Missing"))
-		return
-	}
-	// let’s see if the user exists
-	valid, err := validateUser(r.Header["Email"][0], r.Header["Passwordhash"][0])
 	if err != nil {
-		// this means either the user does not exist
-		rw.WriteHeader(http.StatusUnauthorized)
-		rw.Write([]byte("User Does not Exist"))
+		log.Fatalln(err)
+	}
+
+	var user models.User
+	var auth models.Login
+	json.Unmarshal(body, &auth)
+
+	result := h.DB.Where(&models.User{Email: auth.LoginId}).Or(&models.User{Telephone: auth.LoginId}).First(&user)
+	// Append to the Books table
+	if result.Error != nil {
+		fmt.Println(result.Error)
+		response := models.ResponseObject{Message: "Invalid username/password", Data: err}
+		helpers.Response(w).Write(response, http.StatusBadRequest)
 		return
 	}
+
+	valid := helpers.ValidatePasswordHash(user.Password, auth.Password)
+	fmt.Print("Data", valid)
 
 	if !valid {
-		// this means the password is wrong
-		rw.WriteHeader(http.StatusUnauthorized)
-		rw.Write([]byte("Incorrect Password"))
-		return
-	}
-	tokenString, err := getSignedToken()
-	if err != nil {
 		fmt.Println(err)
-		rw.WriteHeader(http.StatusInternalServerError)
-		rw.Write([]byte("Internal Server Error"))
+		response := models.ResponseObject{Message: "Invalid username/password", Data: err}
+		helpers.Response(w).Write(response, http.StatusBadRequest)
 		return
 	}
 
-	rw.WriteHeader(http.StatusOK)
-	rw.Write([]byte(tokenString))
+	tokenString, err := getSignedToken(user)
+	if err != nil {
+		fmt.Println(err)
+		response := models.ResponseObject{Message: "Internal Server Error", Data: err}
+		helpers.Response(w).Write(response, http.StatusInternalServerError)
+		return
+	}
+
+	response := models.ResponseObject{Message: "Login Successful", Data: tokenString, Error: nil}
+	helpers.Response(w).Write(response, http.StatusOK)
 }
