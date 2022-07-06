@@ -13,19 +13,19 @@ import (
 )
 
 func main() {
-	os.Setenv("SITE_TITLE", "Test Site")
-	os.Setenv("DB_HOST", "")     //city-hotels-db.cihgadwf5bct.us-east-1.rds.amazonaws.com
-	os.Setenv("DB_PORT", "")     //5432
-	os.Setenv("DB_USERNAME", "") //city_hotels
-	os.Setenv("DB_PASSWORD", "") //1234GHJghjJHG456
-	os.Setenv("DB_NAME", "")     // city_hotels
+	os.Setenv("SITE_TITLE", "<SITE_TITLE>")
+	os.Setenv("DB_HOST", "<DB_HOST>")
+	os.Setenv("DB_PORT", "<DB_HOST>")
+	os.Setenv("DB_USERNAME", "<DB_USER>")
+	os.Setenv("DB_PASSWORD", "<DB_PASSWORD>")
+	os.Setenv("DB_NAME", "<DB_NAME>")
 
-	os.Setenv("SMTP_SERVER", "city_hotels")
-	os.Setenv("SMTP_PORT", "city_hotels")
-	os.Setenv("SMTP_USERNAME", "city_hotels")
-	os.Setenv("SMTP_PASSWORD", "city_hotels")
+	os.Setenv("SMTP_SERVER", "<SMTP_SERVER>")
+	os.Setenv("SMTP_PORT", "<SMTP_PORT>")
+	os.Setenv("SMTP_USERNAME", "<SMTP_USERNAME>")
+	os.Setenv("SMTP_PASSWORD", "<SMTP_PASSWORD>")
 
-	os.Setenv("AUTH_TOKEN_SECRET", "1n2kj11j2n12n4224wd35d2353wd")
+	os.Setenv("AUTH_TOKEN_SECRET", "<AUTH_TOKEN_SECRET>")
 
 	// Get the value of an Environment Variable
 	host := os.Getenv("SITE_TITLE")
