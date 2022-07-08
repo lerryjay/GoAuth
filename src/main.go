@@ -13,19 +13,19 @@ import (
 )
 
 func main() {
-	os.Setenv("SITE_TITLE", "<SITE_TITLE>")
-	os.Setenv("DB_HOST", "<DB_HOST>")
-	os.Setenv("DB_PORT", "<DB_HOST>")
-	os.Setenv("DB_USERNAME", "<DB_USER>")
-	os.Setenv("DB_PASSWORD", "<DB_PASSWORD>")
-	os.Setenv("DB_NAME", "<DB_NAME>")
+	os.Setenv("SITE_TITLE", "Test Site")
+	os.Setenv("DB_HOST", "db")
+	os.Setenv("DB_PORT", "5432")
+	os.Setenv("DB_USERNAME", "postgres")
+	os.Setenv("DB_PASSWORD", "12233e23e232e23e")
+	os.Setenv("DB_NAME", "postgres")
 
-	os.Setenv("SMTP_SERVER", "<SMTP_SERVER>")
-	os.Setenv("SMTP_PORT", "<SMTP_PORT>")
-	os.Setenv("SMTP_USERNAME", "<SMTP_USERNAME>")
-	os.Setenv("SMTP_PASSWORD", "<SMTP_PASSWORD>")
+	os.Setenv("SMTP_SERVER", "city_hotels")
+	os.Setenv("SMTP_PORT", "city_hotels")
+	os.Setenv("SMTP_USERNAME", "city_hotels")
+	os.Setenv("SMTP_PASSWORD", "city_hotels")
 
-	os.Setenv("AUTH_TOKEN_SECRET", "<AUTH_TOKEN_SECRET>")
+	os.Setenv("AUTH_TOKEN_SECRET", "1n2kj11j2n12n4224wd35d2353wd")
 
 	// Get the value of an Environment Variable
 	host := os.Getenv("SITE_TITLE")
@@ -59,6 +59,10 @@ func main() {
 
 	adminRouter.HandleFunc("/", h.ListUserHandler).Methods(http.MethodGet)
 
+	adminRouter.HandleFunc("/{Id}/permissions", h.ListUserHandler).Methods(http.MethodPut)
+
+	adminRouter.HandleFunc("/{Id}/permissions", h.ListUserHandler).Methods(http.MethodGet)
+
 	// adminRouter.HandleFunc("", h.ListUserHandler).Methods(http.MethodGet)
 
 	adminRouter.Use(amw.Middleware, roleGuards.Middleware)
@@ -83,11 +87,13 @@ func main() {
 	// HTTP server
 	// Add time outs
 	server := &http.Server{
-		Addr:    "127.0.0.1:9090",
+		Addr:    "0.0.0.0:5000",
 		Handler: mainRouter,
 	}
+
 	err := server.ListenAndServe()
 	if err != nil {
 		fmt.Println("Error Booting the Server ", err)
 	}
+
 }
